@@ -1,103 +1,141 @@
-import Image from "next/image";
+"use client";
+import createTask from "@/action/action";
+import deleteTask from "@/action/action-1";
+import updateTask from "@/action/action-2";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Form } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { PrismaClient } from "@/generated/prisma";
+import prisma from "@/lib/db";
+import { Checkbox } from "@radix-ui/react-checkbox";
+import { Edit, Plus, Trash } from "lucide-react";
+import Link from "next/link";
+import updatepage from "./updatepage/page";
 
-export default function Home() {
+import { CheckedState } from "@radix-ui/react-checkbox";
+import { useState } from "react";
+import { Value } from "@radix-ui/react-select";
+import { useRouter } from "next/navigation";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+
+export function UpdateTaskDialog({
+  task,
+}: {
+  task: { id: string; content: string };
+}) {
+  const [open, setOpen] = useState(false);
+  const [content, setContent] = useState(task.content);
+
+  async function handleUpdate() {
+    try {
+      await updateTask(task.id, content); // id is passed automatically from props
+      setOpen(false);
+    } catch (err) {
+      console.error("failed to update task", err);
+    }
+  }
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <>
+      <Button onClick={() => setOpen(true)}>Update</Button>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Update Task</DialogTitle>
+          </DialogHeader>
+          <Input value={content} onChange={(e) => setContent(e.target.value)} />
+          <DialogFooter>
+            <Button onClick={handleUpdate}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+export default async function Home() {
+  const tasks = await prisma.task.findMany();
+
+  return (
+    <main className="">
+      <div className="p-10 items-center bg-black">
+        <Card className="bg-black">
+          <CardHeader>
+            <CardTitle className="text-center text-2xl text-white">
+              To-Do App
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {/*main div start*/}
+            <div className="items-center max-w-xl w-full mx-auto">
+              {/* display number of task div start*/}
+              <div className="flex items-center justify-between p-6 rounded-2xl border border-gray-700 bg-black text-white max-w-md ml-10">
+                {/*left side*/}
+                <div>
+                  <h2 className="text-lg font-bold">Todo Done</h2>
+                  <p className="text-gray-400 text-sm">Keep it up</p>
+                </div>
+                {/*right side*/}
+                <div className="flex items-center justify-cenetr w-20 h-20 rounded-full bg-red-600">
+                  <p className="ml-7">0/{tasks.length}</p>
+                </div>
+              </div>
+              {/* display number of task div end*/}
+              {/* adding task*/}
+              <div className="m-10 items-center gap-2 px-0 py-1">
+                <form action={createTask}>
+                  <Input
+                    type="text"
+                    name="content"
+                    placeholder="Enter Content"
+                    className="w-100 ml-2 text-white"
+                  />
+                  <Button type="submit" className="w-10 ml-8  bg-red-500">
+                    <Plus className="w-10 " />
+                  </Button>
+                </form>
+              </div>
+              {/*view task */}
+
+              <div className="m-10 items-center gap-2 px-0 py-1 ">
+                {tasks.map((task) => (
+                  <div
+                    key={task.id}
+                    className="grid grid-cols-4 border rounded-full border-black-500 mt-5 h-10"
+                  >
+                    <Checkbox className="rounded-full border-2 border-white mt-2 ml-2 w-5 h-5 " />
+                    <p className="ml-10 text-white">{task.content}</p>
+
+                    <UpdateTaskDialog task={task} />
+
+                    <form action={deleteTask}>
+                      <input name="id" value={task.id} hidden readOnly />
+                      <Button type="submit" className="ml-15">
+                        <Trash />
+                      </Button>
+                    </form>
+                  </div>
+                ))}
+              </div>
+
+              {/*main div end*/}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </main>
   );
 }
